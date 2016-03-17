@@ -1,0 +1,77 @@
+     1                                  ; "%ASMROOT%\win64\examples\000 The Basics\helloworld.asm"
+     2                                  ;
+     3                                  ; for compilation with the NASM assembler
+     4                                  ;
+     5                                  ; nasm -o helloworld.obj -l helloworld.lst -f win64 helloworld.asm
+     6                                  ; golink /console /ni /entry main helloworld.obj kernel32.dll user32.dll gdi32.dll msvcrt.dll comctl32.dll comdlg32.dll oleaut32.dll hhctrl.ocx winspool.drv shell32.dll
+     7                                  
+     8                                  ;Image setup
+     9                                  bits 64
+    10                                  default rel
+    11                                  global main
+    12                                  
+    13                                  ;Linkage
+    14                                  extern GetStdHandle     ;   From kernel32.dll
+    15                                  extern WriteFile        ;   From kernel32.dll
+    16                                  extern ExitProcess      ;   From kernel32.dll
+    17                                  
+    18                                  section .data use64
+    19 00000000 48656C6C6F20576F72-         msg:                db      "Hello World!",0xd,0xa
+    20 00000009 6C64210D0A         
+    21                                      msglen:             equ     $-msg
+    22                                      zero:               equ     0x0
+    23                                      STD_OUTPUT_HANDLE:  equ     -11
+    24                                  
+    25                                  section .bss use64
+    26 00000000 <res 00000008>              hStdOutput  resq    1
+    27 00000008 <res 00000008>              hNum        resq    1
+    28                                  
+    29                                  section .text use64
+    30                                  main: ; int main(int argc, char *argv[], char *envp[])
+    31                                  .prolog:
+    32 00000000 4883EC30                    sub rsp, 0x30
+    33                                  .body:
+    34                                      ; *hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    35 00000004 48C7C1F5FFFFFF              mov rcx, STD_OUTPUT_HANDLE
+    36 0000000B E8(00000000)                call GetStdHandle
+    37 00000010 488905(00000000)            mov qword [hStdOutput], rax
+    38                                      
+    39                                      ; WriteFile(*hStdOutput, *msg, msglen, *hNum, NULL)
+    40 00000017 488B0D(00000000)            mov rcx, qword [hStdOutput]
+    41 0000001E 48BA-                       mov rdx, msg
+    42 00000020 [0000000000000000] 
+    43 00000028 41B80E000000                mov r8d, msglen ; r8d instead of r8 since zero extension workd for us
+    44 0000002E 49B9-                       mov r9, hNum
+    45 00000030 [0800000000000000] 
+    46 00000038 48C744242000000000          mov qword[rsp+0x20],zero ; fifth argument and on are passed on the stack
+    47 00000041 E8(00000000)                call WriteFile
+    48                                  
+    49                                      ; ExitProcess ( 0 )
+    50 00000046 B900000000                  mov ecx, zero ; ecx instead of rcx since zero extension works for us
+    51 0000004B E8(00000000)                call ExitProcess
+    52                                  
+    53                                      ; return 0
+    54 00000050 31C0                        xor eax, eax
+    55                                  .epilog:
+    56 00000052 4883C430                    add rsp, 0x30
+    57 00000056 C3                          ret
+    58                                  .end:
+    59                                   
+    60                                  ; Win64 Windows API x64 Structured Exception Handling (SEH) - procedure data
+    61                                  section .pdata  rdata align=4 use64
+    62                                      pmain:
+    63 00000000 [00000000]                  .start: dd      main     wrt ..imagebase 
+    64 00000004 [57000000]                  .end:   dd      main.end wrt ..imagebase 
+    65 00000008 [00000000]                  .info:  dd      xmain    wrt ..imagebase 
+    66                                  
+    67                                  ; Win64 Windows API x64 Structured Exception Handling (SEH) - unwind information
+    68                                  section .xdata  rdata align=8 use64
+    69                                      xmain:
+    70                                      .versionandflags:
+    71 00000000 20                                  db      0x1 << 0x5 + 0x0 ; Version = 1, UNW_FLAG_NHANDLER flag
+    72 00000001 FC                          .size:  db      main.prolog-main.body ; size of prolog that is
+    73 00000002 01                          .count: db      0x1 ; Only one unwind code-saving volatiles isn't unwound
+    74 00000003 00                          .frame: db      0x0 ; Zero if no frame pointer taken
+    75 00000004 04                          .codes: db      main.body-main.prolog ; offset of next instruction
+    76 00000005 25                                  db      0x25 ; UWOP_ALLOC_SMALL with 5*8+8 bytes=48=0x30
+    77 00000006 0000                                db      0x0,0x0 ; Unused record to bring the number to be even
