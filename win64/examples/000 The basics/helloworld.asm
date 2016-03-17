@@ -22,13 +22,14 @@ section .data use64
     STD_OUTPUT_HANDLE:  equ     -11
 
 section .bss use64
-    hStdOutput  resq    1
-    hNum        resq    1
+    hStdOutput  resq    0x1
+    hNum        resq    0x1
 
 section .text use64
 main: ; int main(int argc, char *argv[], char *envp[])
 .prolog:
-    sub rsp, 0x30
+    sub rsp, 0x8*0x4+0x8 ; register spill 4 * 8 + highest stack argument number
+    ; need to be an odd number of 8 byte adds, +rip makes it align at 16 bytes
 .body:
     ; *hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
     mov rcx, STD_OUTPUT_HANDLE
@@ -40,7 +41,7 @@ main: ; int main(int argc, char *argv[], char *envp[])
     mov rdx, msg
     mov r8d, msglen ; r8d instead of r8 since zero extension workd for us
     mov r9, hNum
-    mov qword[rsp+0x20],zero ; fifth argument and on are passed on the stack
+    mov qword [rsp+0x20], zero ; fifth argument and on are passed on the stack
     call WriteFile
 
     ; ExitProcess ( 0 )
@@ -50,7 +51,7 @@ main: ; int main(int argc, char *argv[], char *envp[])
     ; return 0
     xor eax, eax
 .epilog:
-    add rsp, 0x30
+    add rsp, 0x8*0x4+0x8
     ret
 .end:
  
@@ -66,9 +67,9 @@ section .xdata  rdata align=8 use64
     xmain:
     .versionandflags:
             db      0x1 << 0x5 + 0x0 ; Version = 1, UNW_FLAG_NHANDLER flag
-    .size:  db      main.prolog-main.body ; size of prolog that is
-    .count: db      0x1 ; Only one unwind code-saving volatiles isn't unwound
+    .size:  db      main.body-main.prolog ; size of prolog that is
+    .count: db      0x1 ; Only one unwind code
     .frame: db      0x0 ; Zero if no frame pointer taken
     .codes: db      main.body-main.prolog ; offset of next instruction
-            db      0x25 ; UWOP_ALLOC_SMALL with 5*8+8 bytes=48=0x30
+            db      0x24 ; UWOP_ALLOC_SMALL with 4*8+8 bytes
             db      0x0,0x0 ; Unused record to bring the number to be even
