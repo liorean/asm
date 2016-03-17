@@ -23,7 +23,7 @@ goto fin
 
 :asmerr
 echo ----
-echo Assembly Error
+echo Error while Assembling
 echo ----
 pause
 
