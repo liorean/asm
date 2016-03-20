@@ -31,17 +31,31 @@ The `extern` directive makes these three procedures available from other sources
 
 ```Assembly
 section .data use64
-    msg:                db      "Hello World!",0xd,0xa
-    msglen:             equ     $-msg
-    zero:               equ     0x0
-    STD_OUTPUT_HANDLE:  equ     -11
-
+    msg:                    db      "Hello World!",0xd,0xa
+    msglen:                 equ     $-msg
+    zero:                   equ     0x0
+    STD_OUTPUT_HANDLE:      equ     -11
+    UNW_VERSION:            equ     0x1
+    UNW_FLAG_NHANDLER:      equ     0x0
+    UNW_FLAG_EHANDLER:      equ     0x1
+    UNW_FLAG_UHANDLER:      equ     0x2
+    UNW_FLAG_CHAININFO:     equ     0x4
+    UWOP_PUSH_NONVOL:       equ     0x0
+    UWOP_ALLOC_LARGE:       equ     0x1
+    UWOP_ALLOC_SMALL:       equ     0x2
+    UWOP_SET_FPREG:         equ     0x3
+    UWOP_SAVE_NONVOL:       equ     0x4
+    UWOP_SAVE_NONVOL_FAR:   equ     0x5
+    UWOP_SAVE_XMM128:       equ     0x8
+    UWOP_SAVE_XMM128_FAR:   equ     0x9
+    UWOP_PUSH_MACHFRAME:    equ     0xa
+  
 section .bss use64
-    hStdOutput: resq    1
-    hNum:       resq    1
+    hStdOutput  resq    0x1
+    hNum        resq    0x1
 ```
 
-In an executable image, we don't just have the executable code, we also have data segments. In the `.data` segment, we have initialised data. In this case one piece of data, `msg`, which is a sequence of data of the size byte, whence `db`. There's also three compile time constants there, `msglen` which calculates the location in bytes of its own position subtracted by the location of `msg`, there's `zero` which is numerical zero, and there's `STD_OUTPUT_HANDLE` which is a constant we'll need to retrieve a handle to the standard out from the kernel.
+In an executable image, we don't just have the executable code, we also have data segments. In the `.data` segment, we have initialised data. In this case one piece of data, `msg`, which is a sequence of data of the size byte, whence `db`. There's also several compile time constants there, three used in the actual program, `msglen` which calculates the location in bytes of its own position subtracted by the location of `msg`, there's `zero` which is numerical zero, and there's `STD_OUTPUT_HANDLE` which is a constant we'll need to retrieve a handle to the standard out from the kernel. The other constants are used in the unwind code for Win64 structured exception handling.
 
 In the `.bss` segment we have uninitialised data, in other words containers with no content at compile time, but reserving space that the program can fill. In this case, the `hStdOutput` label is reserved (`res`) for a single quad (`q`) word (4 words, or 8 bytes, or 64 bits) which is the size of a memory address in 64 bit mode, which we'll fill with the address to the actual standard out. The `hNum` label is likewise reserved for a single quad word, but that single quad word will be used as a number and not a memory address.
 
@@ -61,7 +75,7 @@ main: ; int main(int argc, char *argv[], char *envp[])
     ; WriteFile(*hStdOutput, *msg, msglen, *hNum, NULL)
     mov rcx, qword [hStdOutput]
     mov rdx, msg
-    mov r8d, msglen ; r8d instead of r8 since zero extension workd for us
+    mov r8d, msglen ; r8d instead of r8 since zero extension works for us
     mov r9, hNum
     mov qword [rsp+0x20], zero ; fifth argument and on are passed on the stack
     call WriteFile
@@ -104,13 +118,20 @@ section .pdata  rdata align=4 use64
 section .xdata  rdata align=8 use64
     xmain:
     .versionandflags:
-            db      0x1 << 0x5 + 0x0 ; Version = 1, UNW_FLAG_NHANDLER flag
+            db      UNW_VERSION + (UNW_FLAG_NHANDLER << 0x3) ; Version = 1
+    ; Version is lowest 3 bits, Handler flaga are highest 5 bits
     .size:  db      main.body-main.prolog ; size of prolog that is
     .count: db      0x1 ; Only one unwind code
-    .frame: db      0x0 ; Zero if no frame pointer taken
+    .frame: db      0x0 + (0x0 << 0x4) ; Zero if no frame pointer taken
+    ; Frame register is low 4 bits, Frame register offset is RSP + 16 * offset
+    ; at time of establishing
     .codes: db      main.body-main.prolog ; offset of next instruction
-            db      0x24 ; UWOP_ALLOC_SMALL with 4*8+8 bytes
+            db      UWOP_ALLOC_SMALL + (0x4 << 0x4) ; UWOP_INFO: 4*8+8 bytes
+    ; Low 4 bytes UWOP, High 4 bytes op info.
+    ; Some ops use one or two 16 bit slots more for addressing here
             db      0x0,0x0 ; Unused record to bring the number to be even
+    .handl: ; 32 bit image relative address to entry of exception handler
+    .einfo: ; implementation defined structure exception info
 ```
 
 Once that is done, our executable is practically finished. We just need the last few components to make it conform to the Win64 ABI: we have a single frame procedure, `main`, which needs a corresponding entry in the `.pdata` section following the structure of [struct RUNTIME_FUNCTION](https://msdn.microsoft.com/en-us/library/ft9x1kdx.aspx). Basically this record needs to contain, for each frame procedure, an image relative 32-bit address to it's entry point, an image relative 32-bit address to just after its exit point, and an image relative 32-bit address to a [struct UNWIND_INFO](https://msdn.microsoft.com/en-us/library/ddssxxy8.aspx) representing that procedure's unwind information, where our simple procedure will have only a single entry of type [struct UNWIND_CODE](https://msdn.microsoft.com/en-us/library/ck9asaa9.aspx) representing what needs to be done to restore the stack frame, and neither termination handler, exception handler nor chained unwind info.
