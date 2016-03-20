@@ -21,58 +21,79 @@
     21                                      msglen:             equ     $-msg
     22                                      zero:               equ     0x0
     23                                      STD_OUTPUT_HANDLE:  equ     -11
-    24                                  
-    25                                  section .bss use64
-    26 00000000 <res 00000008>              hStdOutput  resq    0x1
-    27 00000008 <res 00000008>              hNum        resq    0x1
-    28                                  
-    29                                  section .text use64
-    30                                  main: ; int main(int argc, char *argv[], char *envp[])
-    31                                  .prolog:
-    32 00000000 4883EC28                    sub rsp, 0x8*0x4+0x8 ; register spill 4 * 8 + highest stack argument number
-    33                                      ; need to be an odd number of 8 byte adds, +rip makes it align at 16 bytes
-    34                                  .body:
-    35                                      ; *hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-    36 00000004 48C7C1F5FFFFFF              mov rcx, STD_OUTPUT_HANDLE
-    37 0000000B E8(00000000)                call GetStdHandle
-    38 00000010 488905(00000000)            mov qword [hStdOutput], rax
-    39                                      
-    40                                      ; WriteFile(*hStdOutput, *msg, msglen, *hNum, NULL)
-    41 00000017 488B0D(00000000)            mov rcx, qword [hStdOutput]
-    42 0000001E 48BA-                       mov rdx, msg
-    43 00000020 [0000000000000000] 
-    44 00000028 41B80E000000                mov r8d, msglen ; r8d instead of r8 since zero extension workd for us
-    45 0000002E 49B9-                       mov r9, hNum
-    46 00000030 [0800000000000000] 
-    47 00000038 48C744242000000000          mov qword [rsp+0x20], zero ; fifth argument and on are passed on the stack
-    48 00000041 E8(00000000)                call WriteFile
-    49                                  
-    50                                      ; ExitProcess ( 0 )
-    51 00000046 B900000000                  mov ecx, zero ; ecx instead of rcx since zero extension works for us
-    52 0000004B E8(00000000)                call ExitProcess
-    53                                  
-    54                                      ; return 0
-    55 00000050 31C0                        xor eax, eax
-    56                                  .epilog:
-    57 00000052 4883C428                    add rsp, 0x8*0x4+0x8
-    58 00000056 C3                          ret
-    59                                  .end:
-    60                                   
-    61                                  ; Win64 Windows API x64 Structured Exception Handling (SEH) - procedure data
-    62                                  section .pdata  rdata align=4 use64
-    63                                      pmain:
-    64 00000000 [00000000]                  .start: dd      main     wrt ..imagebase 
-    65 00000004 [57000000]                  .end:   dd      main.end wrt ..imagebase 
-    66 00000008 [00000000]                  .info:  dd      xmain    wrt ..imagebase 
+    24                                      UNW_VERSION:        equ     0x1
+    25                                      UNW_FLAG_NHANDLER:  equ     0x0
+    26                                      UNW_FLAG_EHANDLER:  equ     0x1
+    27                                      UNW_FLAG_UHANDLER:  equ     0x2
+    28                                      UNW_FLAG_CHAININFO: equ     0x4
+    29                                      UWOP_PUSH_NONVOL:   equ     0x0
+    30                                      UWOP_ALLOC_LARGE:   equ     0x1
+    31                                      UWOP_ALLOC_SMALL:   equ     0x2
+    32                                      UWOP_SET_FPREG:     equ     0x3
+    33                                      UWOP_SAVE_NONVOL:   equ     0x4
+    34                                      UWOP_SAVE_NONVOL_FAR:equ    0x5
+    35                                      UWOP_SAVE_XMM128:   equ     0x8
+    36                                      UWOP_SAVE_XMM128_FAR:equ    0x9
+    37                                      UWOP_PUSH_MACHFRAME:equ     0xa
+    38                                    
+    39                                  section .bss use64
+    40 00000000 <res 00000008>              hStdOutput  resq    0x1
+    41 00000008 <res 00000008>              hNum        resq    0x1
+    42                                  
+    43                                  section .text use64
+    44                                  main: ; int main(int argc, char *argv[], char *envp[])
+    45                                  .prolog:
+    46 00000000 4883EC28                    sub rsp, 0x8*0x4+0x8 ; register spill 4 * 8 + highest stack argument number
+    47                                      ; need to be an odd number of 8 byte adds, +rip makes it align at 16 bytes
+    48                                  .body:
+    49                                      ; *hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    50 00000004 48C7C1F5FFFFFF              mov rcx, STD_OUTPUT_HANDLE
+    51 0000000B E8(00000000)                call GetStdHandle
+    52 00000010 488905(00000000)            mov qword [hStdOutput], rax
+    53                                      
+    54                                      ; WriteFile(*hStdOutput, *msg, msglen, *hNum, NULL)
+    55 00000017 488B0D(00000000)            mov rcx, qword [hStdOutput]
+    56 0000001E 48BA-                       mov rdx, msg
+    57 00000020 [0000000000000000] 
+    58 00000028 41B80E000000                mov r8d, msglen ; r8d instead of r8 since zero extension workd for us
+    59 0000002E 49B9-                       mov r9, hNum
+    60 00000030 [0800000000000000] 
+    61 00000038 48C744242000000000          mov qword [rsp+0x20], zero ; fifth argument and on are passed on the stack
+    62 00000041 E8(00000000)                call WriteFile
+    63                                  
+    64                                      ; ExitProcess ( 0 )
+    65 00000046 B900000000                  mov ecx, zero ; ecx instead of rcx since zero extension works for us
+    66 0000004B E8(00000000)                call ExitProcess
     67                                  
-    68                                  ; Win64 Windows API x64 Structured Exception Handling (SEH) - unwind information
-    69                                  section .xdata  rdata align=8 use64
-    70                                      xmain:
-    71                                      .versionandflags:
-    72 00000000 20                                  db      0x1 << 0x5 + 0x0 ; Version = 1, UNW_FLAG_NHANDLER flag
-    73 00000001 04                          .size:  db      main.body-main.prolog ; size of prolog that is
-    74 00000002 01                          .count: db      0x1 ; Only one unwind code
-    75 00000003 00                          .frame: db      0x0 ; Zero if no frame pointer taken
-    76 00000004 04                          .codes: db      main.body-main.prolog ; offset of next instruction
-    77 00000005 24                                  db      0x24 ; UWOP_ALLOC_SMALL with 4*8+8 bytes
-    78 00000006 0000                                db      0x0,0x0 ; Unused record to bring the number to be even
+    68                                      ; return 0
+    69 00000050 31C0                        xor eax, eax
+    70                                  .epilog:
+    71 00000052 4883C428                    add rsp, 0x8*0x4+0x8
+    72 00000056 C3                          ret
+    73                                  .end:
+    74                                   
+    75                                  ; Win64 Windows API x64 Structured Exception Handling (SEH) - procedure data
+    76                                  section .pdata  rdata align=4 use64
+    77                                      pmain:
+    78 00000000 [00000000]                  .start: dd      main     wrt ..imagebase 
+    79 00000004 [57000000]                  .end:   dd      main.end wrt ..imagebase 
+    80 00000008 [00000000]                  .info:  dd      xmain    wrt ..imagebase 
+    81                                  
+    82                                  ; Win64 Windows API x64 Structured Exception Handling (SEH) - unwind information
+    83                                  section .xdata  rdata align=8 use64
+    84                                      xmain:
+    85                                      .versionandflags:
+    86 00000000 01                                  db      UNW_VERSION + (UNW_FLAG_NHANDLER << 0x3) ; Version = 1
+    87                                      ; Version is lowest 3 bits, Handler flaga are highest 5 bits
+    88 00000001 04                          .size:  db      main.body-main.prolog ; size of prolog that is
+    89 00000002 01                          .count: db      0x1 ; Only one unwind code
+    90 00000003 00                          .frame: db      0x0 + (0x0 << 0x4) ; Zero if no frame pointer taken
+    91                                      ; Frame register is low 4 bits, Frame register offset is RSP + 16 * offset
+    92                                      ; at time of establishing
+    93 00000004 04                          .codes: db      main.body-main.prolog ; offset of next instruction
+    94 00000005 42                                  db      UWOP_ALLOC_SMALL + (0x4 << 0x4) ; UWOP_INFO: 4*8+8 bytes
+    95                                      ; Low 4 bytes UWOP, High 4 bytes op info.
+    96                                      ; Some ops use one or two 16 bit slots more for addressing here
+    97 00000006 0000                                db      0x0,0x0 ; Unused record to bring the number to be even
+    98                                      .handl: ; 32 bit image relative address to entry of exception handler
+    99                                      .einfo: ; implementation defined structure exception info
