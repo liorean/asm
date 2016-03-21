@@ -81,7 +81,7 @@ section .bss use64
 
 Like in Hello World, we want to store the handle to the standard output port somewhere, and `hStdOutput` is that place. It's placed in the `.bss` section as that is where we place uninitialised stuff that we want to fill in as the program runs. In addition to that, we of course need two other ports, `hStdInput` and `hStdError` as well this time.
 
-We also want to store the string we're going to read from standard input somewhere, so we reserve a 256 byte large area to place it, `bName`, as well as a place to store the actual length of the string as it got read, ´bNamelen´.
+We also want to store the string we're going to read from standard input somewhere, so we reserve a 256 byte large area to place it, `bName`, as well as a place to store the actual length of the string as it got read, `bNamelen`.
 
 ```Assembly
 ;Program code
