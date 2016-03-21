@@ -1,167 +1,196 @@
-     1                                  ; "%ASMROOT%\win64\examples\000 The Basics\stdio.asm"
-     2                                  ;
-     3                                  ; for compilation with the NASM assembler
-     4                                  ;
-     5                                  ; nasm -o stdio.obj -l stdio.lst -f win64 stdio.asm
-     6                                  ; golink /console /ni /entry main stdio.obj kernel32.dll user32.dll gdi32.dll msvcrt.dll comctl32.dll comdlg32.dll oleaut32.dll hhctrl.ocx winspool.drv shell32.dll
-     7                                  
-     8                                  ;Image setup
-     9                                  bits 64
-    10                                  default rel
-    11                                  global main
-    12                                  
-    13                                  ;Linkage
-    14                                  extern GetStdHandle
-    15                                  extern WriteFile
-    16                                  extern ReadFile
-    17                                  extern ExitProcess
-    18                                  
-    19                                  ;Read only data
-    20                                  section .rodata use64
-    21                                      zero                equ     0x0
-    22 00000000 576861742069732079-         query               db      "What is your name?",0xd,0xa
-    23 00000009 6F7572206E616D653F-
-    24 00000012 0D0A               
-    25                                      querylen            equ     $-query
-    26 00000014 57656C636F6D652C20          greet               db      "Welcome, "
-    27                                      greetlen            equ     $-greet
-    28 0000001D 4E6F206572726F7273-         errmsg              db      "No errors to report!",0xd,0xa
-    29 00000026 20746F207265706F72-
-    30 0000002F 74210D0A           
-    31                                      errmsglen           equ     $-errmsg
-    32 00000033 0D0A                        crlf                db      0xd,0xa
-    33                                      crlflen             equ     $-crlf
-    34                                      bNamelim            equ     0xff
-    35                                      STD_INPUT_HANDLE    equ     -10
-    36                                      STD_OUTPUT_HANDLE   equ     -11
-    37                                      STD_ERROR_HANDLE    equ     -12
-    38                                  
-    39                                  ;Uninitialised data
-    40                                  section .bss use64
-    41 00000000 <res 00000008>              argc        resq    0x1
-    42 00000008 <res 00000008>              argv        resq    0x1
-    43 00000010 <res 00000008>              envp        resq    0x1
-    44 00000018 <res 00000008>              hStdInput   resq    0x1
-    45 00000020 <res 00000008>              hStdOutput  resq    0x1
-    46 00000028 <res 00000008>              hStdError   resq    0x1
-    47 00000030 <res 00000008>              hNum        resq    0x1
-    48 00000038 <res 00000008>              hMode       resq    0x1
-    49 00000040 <res 00000100>              bName       resb    0x100
-    50 00000140 <res 00000008>              bNamelen    resq    0x1
-    51                                  
-    52                                  ;Program code
-    53                                  section .text use64
-    54                                  main:
-    55                                  .prolog:
-    56 00000000 48890D(00000000)            mov qword [argc], rcx
-    57                                  .argc:
-    58 00000007 488915(08000000)            mov qword [argv], rdx
-    59                                  .argv:
-    60 0000000E 4C8905(10000000)            mov qword [envp], r8
-    61                                  .envp:
-    62 00000015 4883C428                    add rsp, 0x8*0x4+0x8
-    63                                  .rsp:
-    64                                  
-    65                                  .body:
-    66 00000019 48C7C1F6FFFFFF              mov rcx, qword STD_INPUT_HANDLE
-    67 00000020 E8(00000000)                call GetStdHandle
-    68 00000025 488905(18000000)            mov qword [hStdInput], rax
-    69                                  
-    70 0000002C 48C7C1F5FFFFFF              mov rcx, qword STD_OUTPUT_HANDLE
-    71 00000033 E8(00000000)                call GetStdHandle
-    72 00000038 488905(20000000)            mov qword [hStdOutput], rax
-    73                                  
-    74 0000003F 48C7C1F4FFFFFF              mov rcx, qword STD_ERROR_HANDLE
-    75 00000046 E8(00000000)                call GetStdHandle
-    76 0000004B 488905(28000000)            mov qword [hStdError], rax
-    77                                  
-    78 00000052 488B0D(20000000)            mov rcx, qword [hStdOutput]
-    79 00000059 48BA-                       mov rdx, qword query
-    80 0000005B [0000000000000000] 
-    81 00000063 41B814000000                mov r8d, dword querylen
-    82 00000069 49B9-                       mov r9, qword hNum
-    83 0000006B [3000000000000000] 
-    84 00000073 48C744242000000000          mov qword [rsp+0x20], zero
-    85 0000007C E8(00000000)                call WriteFile
+     1                                  ; implementation defined structure exception info
+     2                                  ; "%ASMROOT%\win64\examples\000 The Basics\stdio.asm"
+     3                                  ;
+     4                                  ; for compilation with the NASM assembler
+     5                                  ;
+     6                                  ; nasm -o stdio.obj -l stdio.lst -f win64 stdio.asm
+     7                                  ; golink /console /ni /entry main stdio.obj kernel32.dll user32.dll gdi32.dll msvcrt.dll comctl32.dll comdlg32.dll oleaut32.dll hhctrl.ocx winspool.drv shell32.dll
+     8                                  
+     9                                  ;Image setup
+    10                                  bits 64
+    11                                  default rel
+    12                                  global main
+    13                                  
+    14                                  ;Linkage
+    15                                  extern GetStdHandle
+    16                                  extern WriteFile
+    17                                  extern ReadFile
+    18                                  extern ExitProcess
+    19                                  
+    20                                  ;Read only data
+    21                                  section .rdata use64
+    22                                      zero:                   equ     0x0
+    23 00000000 576861742069732079-         query:                  db      "What is your name?",0xd,0xa
+    24 00000009 6F7572206E616D653F-
+    25 00000012 0D0A               
+    26                                      querylen:               equ     $-query
+    27 00000014 57656C636F6D652C20          greet:                  db      "Welcome, "
+    28                                      greetlen:               equ     $-greet
+    29 0000001D 4E6F206572726F7273-         errmsg:                 db      "No errors to report!",0xd,0xa
+    30 00000026 20746F207265706F72-
+    31 0000002F 74210D0A           
+    32                                      errmsglen:              equ     $-errmsg
+    33 00000033 0D0A                        crlf:                   db      0xd,0xa
+    34                                      crlflen:                equ     $-crlf
+    35                                      bNamelim:               equ     0xff
+    36                                      STD_INPUT_HANDLE:       equ     -10
+    37                                      STD_OUTPUT_HANDLE:      equ     -11
+    38                                      STD_ERROR_HANDLE:       equ     -12
+    39                                      UNW_VERSION:            equ     0x1
+    40                                      UNW_FLAG_NHANDLER:      equ     0x0
+    41                                      UNW_FLAG_EHANDLER:      equ     0x1
+    42                                      UNW_FLAG_UHANDLER:      equ     0x2
+    43                                      UNW_FLAG_CHAININFO:     equ     0x4
+    44                                      UWOP_PUSH_NONVOL:       equ     0x0
+    45                                      UWOP_ALLOC_LARGE:       equ     0x1
+    46                                      UWOP_ALLOC_SMALL:       equ     0x2
+    47                                      UWOP_SET_FPREG:         equ     0x3
+    48                                      UWOP_SAVE_NONVOL:       equ     0x4
+    49                                      UWOP_SAVE_NONVOL_FAR:   equ     0x5
+    50                                      UWOP_SAVE_XMM128:       equ     0x8
+    51                                      UWOP_SAVE_XMM128_FAR:   equ     0x9
+    52                                      UWOP_PUSH_MACHFRAME:    equ     0xa
+    53                                  
+    54                                  ;Uninitialised data
+    55                                  section .bss use64
+    56 00000000 <res 00000008>              argc:       resq    0x1
+    57 00000008 <res 00000008>              argv:       resq    0x1
+    58 00000010 <res 00000008>              envp:       resq    0x1
+    59 00000018 <res 00000008>              hStdInput:  resq    0x1
+    60 00000020 <res 00000008>              hStdOutput: resq    0x1
+    61 00000028 <res 00000008>              hStdError:  resq    0x1
+    62 00000030 <res 00000008>              hNum:       resq    0x1
+    63 00000038 <res 00000008>              hMode:      resq    0x1
+    64 00000040 <res 00000100>              bName:      resb    0x100
+    65 00000140 <res 00000008>              bNamelen:   resq    0x1
+    66                                  
+    67                                  ;Program code
+    68                                  section .text use64
+    69                                  main:
+    70                                  .prolog:
+    71 00000000 48890D(00000000)        .argc:    mov qword [argc], rcx
+    72 00000007 488915(08000000)        .argv:    mov qword [argv], rdx
+    73 0000000E 4C8905(10000000)        .envp:    mov qword [envp], r8
+    74 00000015 4883EC28                .rsp:     sub rsp, 0x8*0x4+0x8
+    75                                  
+    76                                  .body:
+    77                                          ; hStdInput = GetStdHandle (STD_INPUT_HANDLE)
+    78 00000019 48C7C1F6FFFFFF                  mov rcx, qword STD_INPUT_HANDLE
+    79 00000020 E8(00000000)                    call GetStdHandle
+    80 00000025 488905(18000000)                mov qword [hStdInput], rax
+    81                                  
+    82                                          ; hStdOutput = GetStdHandle (STD_OUTPUT_HANDLE)
+    83 0000002C 48C7C1F5FFFFFF                  mov rcx, qword STD_OUTPUT_HANDLE
+    84 00000033 E8(00000000)                    call GetStdHandle
+    85 00000038 488905(20000000)                mov qword [hStdOutput], rax
     86                                  
-    87 00000081 488B0D(18000000)            mov rcx, qword [hStdInput]
-    88 00000088 48BA-                       mov rdx, qword bName
-    89 0000008A [4000000000000000] 
-    90 00000092 41B8FF000000                mov r8d, dword bNamelim
-    91 00000098 49B9-                       mov r9, qword bNamelen
-    92 0000009A [4001000000000000] 
-    93 000000A2 48C744242000000000          mov qword [rsp+0x20], zero
-    94 000000AB E8(00000000)                call ReadFile
-    95                                  
-    96 000000B0 488B0D(20000000)            mov rcx, qword [hStdOutput]
-    97 000000B7 48BA-                       mov rdx, qword crlf
-    98 000000B9 [3300000000000000] 
-    99 000000C1 41B802000000                mov r8d, dword crlflen
-   100 000000C7 49B9-                       mov r9, qword hNum
-   101 000000C9 [3000000000000000] 
-   102 000000D1 48C744242000000000          mov qword [rsp+0x20], zero
-   103 000000DA E8(00000000)                call WriteFile
-   104                                  
-   105 000000DF 488B0D(20000000)            mov rcx, qword [hStdOutput]
-   106 000000E6 48BA-                       mov rdx, qword greet
-   107 000000E8 [1400000000000000] 
-   108 000000F0 41B809000000                mov r8d, dword greetlen
-   109 000000F6 49B9-                       mov r9, qword hNum
-   110 000000F8 [3000000000000000] 
-   111 00000100 48C744242000000000          mov qword [rsp+0x20], zero
-   112 00000109 E8(00000000)                call WriteFile
-   113                                  
-   114 0000010E 488B0D(20000000)            mov rcx, qword [hStdOutput]
-   115 00000115 48BA-                       mov rdx, qword bName
-   116 00000117 [4000000000000000] 
-   117 0000011F 448B05(40010000)            mov r8d, dword [bNamelen]
-   118 00000126 49B9-                       mov r9, qword hNum
-   119 00000128 [3000000000000000] 
-   120 00000130 48C744242000000000          mov qword [rsp+0x20], zero
-   121 00000139 E8(00000000)                call WriteFile
-   122                                  
-   123 0000013E 488B0D(20000000)            mov rcx, qword [hStdOutput]
-   124 00000145 48BA-                       mov rdx, qword crlf
-   125 00000147 [3300000000000000] 
-   126 0000014F 41B802000000                mov r8d, dword crlflen
-   127 00000155 49B9-                       mov r9, qword hNum
-   128 00000157 [3000000000000000] 
-   129 0000015F 48C744242000000000          mov qword [rsp+0x20], zero
-   130 00000168 E8(00000000)                call WriteFile
-   131                                      
-   132 0000016D 488B0D(28000000)            mov rcx, qword [hStdError]
-   133 00000174 48BA-                       mov rdx, qword errmsg
-   134 00000176 [1D00000000000000] 
-   135 0000017E 41B816000000                mov r8d, dword errmsglen
-   136 00000184 49B9-                       mov r9, qword hNum
-   137 00000186 [3000000000000000] 
-   138 0000018E 48C744242000000000          mov qword [rsp+0x20], zero
-   139 00000197 E8(00000000)                call WriteFile
-   140                                  
-   141 0000019C 31C9                        xor ecx, ecx;
-   142 0000019E E8(00000000)                call ExitProcess
-   143                                  
-   144 000001A3 31C0                        xor eax, eax;
-   145                                  .epilog:
-   146 000001A5 4883EC28                    sub rsp, 0x8*0x4+0x8
-   147 000001A9 C3                          ret
-   148                                  .end:
-   149                                  
-   150                                  ; Windows API x64 Structured Exception Handling - procedure data
-   151                                  section .pdata  rdata align=4 use64
-   152                                      pmain:
-   153 00000000 [00000000]                  .start: dd      main     wrt ..imagebase 
-   154 00000004 [AA010000]                  .end:   dd      main.end wrt ..imagebase 
-   155 00000008 [00000000]                  .info:  dd      xmain    wrt ..imagebase 
-   156                                  
-   157                                  ; Windows API x64 Structured Exception Handling - unwind information
-   158                                  section .xdata  rdata align=8 use64
-   159                                      xmain:
-   160                                      .versionandflags:
-   161 00000000 20                                  db      0x1 << 0x5 + 0x0 ; Version = 1, UNW_FLAG_NHANDLER flag
-   162 00000001 19                          .size:  db      main.body-main.prolog ; size of prolog that is
-   163 00000002 01                          .count: db      0x1 ; Only one unwind code-saving volatiles isn't unwound
-   164 00000003 00                          .frame: db      0x0 ; Zero if no frame pointer taken
-   165 00000004 19                          .codes: db      main.rsp-main.prolog ; offset of next instruction
-   166 00000005 24                                  db      0x24 ; UWOP_ALLOC_SMALL with 4*8+8 bytes
-   167 00000006 0000                                db      0x0,0x0 ; Unused record to bring the number to be even
+    87                                          ; hStdError = GetStdHandle (STD_ERROR_HANDLE)
+    88 0000003F 48C7C1F4FFFFFF                  mov rcx, qword STD_ERROR_HANDLE
+    89 00000046 E8(00000000)                    call GetStdHandle
+    90 0000004B 488905(28000000)                mov qword [hStdError], rax
+    91                                  
+    92                                          ; WriteFile (*hStdOutput, &query, querylen, &hNum, NULL)
+    93 00000052 488B0D(20000000)                mov rcx, qword [hStdOutput]
+    94 00000059 48BA-                           mov rdx, qword query
+    95 0000005B [0000000000000000] 
+    96 00000063 41B814000000                    mov r8d, dword querylen
+    97 00000069 49B9-                           mov r9, qword hNum
+    98 0000006B [3000000000000000] 
+    99 00000073 48C744242000000000              mov qword [rsp+0x20], zero
+   100 0000007C E8(00000000)                    call WriteFile
+   101                                  
+   102                                          ; ReadFile (*hStdInput, &bName, bNamelim, &bNameLen, NULL)
+   103 00000081 488B0D(18000000)                mov rcx, qword [hStdInput]
+   104 00000088 48BA-                           mov rdx, qword bName
+   105 0000008A [4000000000000000] 
+   106 00000092 41B8FF000000                    mov r8d, dword bNamelim
+   107 00000098 49B9-                           mov r9, qword bNamelen
+   108 0000009A [4001000000000000] 
+   109 000000A2 48C744242000000000              mov qword [rsp+0x20], zero
+   110 000000AB E8(00000000)                    call ReadFile
+   111                                  
+   112                                          ; WriteFile (*hStdOutput, &crlf, crlflen, &hNum, NULL)
+   113 000000B0 488B0D(20000000)                mov rcx, qword [hStdOutput]
+   114 000000B7 48BA-                           mov rdx, qword crlf
+   115 000000B9 [3300000000000000] 
+   116 000000C1 41B802000000                    mov r8d, dword crlflen
+   117 000000C7 49B9-                           mov r9, qword hNum
+   118 000000C9 [3000000000000000] 
+   119 000000D1 48C744242000000000              mov qword [rsp+0x20], zero
+   120 000000DA E8(00000000)                    call WriteFile
+   121                                  
+   122                                          ; WriteFile (*hStdOutput, &greet, greetlen, &hNum, NULL)
+   123 000000DF 488B0D(20000000)                mov rcx, qword [hStdOutput]
+   124 000000E6 48BA-                           mov rdx, qword greet
+   125 000000E8 [1400000000000000] 
+   126 000000F0 41B809000000                    mov r8d, dword greetlen
+   127 000000F6 49B9-                           mov r9, qword hNum
+   128 000000F8 [3000000000000000] 
+   129 00000100 48C744242000000000              mov qword [rsp+0x20], zero
+   130 00000109 E8(00000000)                    call WriteFile
+   131                                  
+   132                                          ; WriteFile (*hStdOutput, &bName, *bNamelen, &hNum, NULL)
+   133 0000010E 488B0D(20000000)                mov rcx, qword [hStdOutput]
+   134 00000115 48BA-                           mov rdx, qword bName
+   135 00000117 [4000000000000000] 
+   136 0000011F 448B05(40010000)                mov r8d, dword [bNamelen]
+   137 00000126 49B9-                           mov r9, qword hNum
+   138 00000128 [3000000000000000] 
+   139 00000130 48C744242000000000              mov qword [rsp+0x20], zero
+   140 00000139 E8(00000000)                    call WriteFile
+   141                                  
+   142                                          ; WriteFile (*hStdOutput, &crlf, crlflen, &hNum, NULL)
+   143 0000013E 488B0D(20000000)                mov rcx, qword [hStdOutput]
+   144 00000145 48BA-                           mov rdx, qword crlf
+   145 00000147 [3300000000000000] 
+   146 0000014F 41B802000000                    mov r8d, dword crlflen
+   147 00000155 49B9-                           mov r9, qword hNum
+   148 00000157 [3000000000000000] 
+   149 0000015F 48C744242000000000              mov qword [rsp+0x20], zero
+   150 00000168 E8(00000000)                    call WriteFile
+   151                                          
+   152                                          ; WriteFile (*hStdError, &errmsg, errmsglen, &hNum, NULL)
+   153 0000016D 488B0D(28000000)                mov rcx, qword [hStdError]
+   154 00000174 48BA-                           mov rdx, qword errmsg
+   155 00000176 [1D00000000000000] 
+   156 0000017E 41B816000000                    mov r8d, dword errmsglen
+   157 00000184 49B9-                           mov r9, qword hNum
+   158 00000186 [3000000000000000] 
+   159 0000018E 48C744242000000000              mov qword [rsp+0x20], zero
+   160 00000197 E8(00000000)                    call WriteFile
+   161                                  
+   162                                          ; ExitProcess(0)
+   163 0000019C 31C9                    .exit:  xor ecx, ecx
+   164 0000019E E8(00000000)                    call ExitProcess
+   165                                  
+   166 000001A3 31C0                    .rval:  xor eax, eax ; return 0
+   167                                  .epilog:
+   168 000001A5 4883C428                        add rsp, 0x8*0x4+0x8
+   169 000001A9 C3                              ret
+   170                                  .end:
+   171                                  
+   172                                  ; Win64 Windows API x64 Structured Exception Handling (SEH) - procedure data
+   173                                  section .pdata  rdata align=4 use64
+   174                                      pmain:
+   175 00000000 [00000000]                  .start: dd      main     wrt ..imagebase 
+   176 00000004 [AA010000]                  .end:   dd      main.end wrt ..imagebase 
+   177 00000008 [00000000]                  .info:  dd      xmain    wrt ..imagebase 
+   178                                  
+   179                                  ; Win64 Windows API x64 Structured Exception Handling (SEH) - unwind information
+   180                                  section .xdata  rdata align=8 use64
+   181                                      xmain:
+   182                                      .versionandflags:
+   183 00000000 01                                  db      UNW_VERSION + (UNW_FLAG_NHANDLER << 0x3) ; Version = 1
+   184                                      ; Version is low 3 bits. Handler flags are high 5 bits.
+   185 00000001 19                          .size:  db      main.body-main.prolog ; size of prolog that is
+   186 00000002 01                          .count: db      0x1 ; Only one unwind code
+   187 00000003 00                          .frame: db      0x0 + (0x0 << 0x4) ; Zero if no frame pointer taken
+   188                                      ; Frame register is low 4 bits, Frame register offset is high 4 bits,
+   189                                      ; rsp + 16 * offset at time of establishing
+   190 00000004 19                          .codes: db      main.body-main.prolog ; offset of next instruction
+   191 00000005 42                                  db      UWOP_ALLOC_SMALL + (0x4 << 0x4) ; UWOP_INFO: 4*8+8 bytes
+   192                                      ; Low 4 bytes UWOP, high 4 bytes op info.
+   193                                      ; Some ops use one or two 16 bit slots more for addressing here
+   194 00000006 0000                                db      0x0,0x0 ; Unused record to bring the number to be even
+   195                                      .handl: ; 32 bit image relative address to entry of exception handler
+   196                                      .einfo: ; implementation defined structure exception info

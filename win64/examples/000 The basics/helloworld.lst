@@ -15,7 +15,7 @@
     15                                  extern WriteFile        ;   From kernel32.dll
     16                                  extern ExitProcess      ;   From kernel32.dll
     17                                  
-    18                                  section .data use64
+    18                                  section .rdata use64
     19 00000000 48656C6C6F20576F72-         msg:                db      "Hello World!",0xd,0xa
     20 00000009 6C64210D0A         
     21                                      msglen:             equ     $-msg
@@ -84,15 +84,15 @@
     84                                      xmain:
     85                                      .versionandflags:
     86 00000000 01                                  db      UNW_VERSION + (UNW_FLAG_NHANDLER << 0x3) ; Version = 1
-    87                                      ; Version is lowest 3 bits, Handler flaga are highest 5 bits
+    87                                      ; Version is low 3 bits. Handler flags are high 5 bits.
     88 00000001 04                          .size:  db      main.body-main.prolog ; size of prolog that is
     89 00000002 01                          .count: db      0x1 ; Only one unwind code
     90 00000003 00                          .frame: db      0x0 + (0x0 << 0x4) ; Zero if no frame pointer taken
-    91                                      ; Frame register is low 4 bits, Frame register offset is RSP + 16 * offset
-    92                                      ; at time of establishing
+    91                                      ; Frame register is low 4 bits, Frame register offset is high 4 bits,
+    92                                      ; rsp + 16 * offset at time of establishing
     93 00000004 04                          .codes: db      main.body-main.prolog ; offset of next instruction
     94 00000005 42                                  db      UWOP_ALLOC_SMALL + (0x4 << 0x4) ; UWOP_INFO: 4*8+8 bytes
-    95                                      ; Low 4 bytes UWOP, High 4 bytes op info.
+    95                                      ; Low 4 bytes UWOP, high 4 bytes op info.
     96                                      ; Some ops use one or two 16 bit slots more for addressing here
     97 00000006 0000                                db      0x0,0x0 ; Unused record to bring the number to be even
     98                                      .handl: ; 32 bit image relative address to entry of exception handler

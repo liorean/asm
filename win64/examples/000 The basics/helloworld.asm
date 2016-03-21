@@ -15,7 +15,7 @@ extern GetStdHandle     ;   From kernel32.dll
 extern WriteFile        ;   From kernel32.dll
 extern ExitProcess      ;   From kernel32.dll
 
-section .data use64
+section .rdata use64
     msg:                db      "Hello World!",0xd,0xa
     msglen:             equ     $-msg
     zero:               equ     0x0
@@ -81,15 +81,15 @@ section .xdata  rdata align=8 use64
     xmain:
     .versionandflags:
             db      UNW_VERSION + (UNW_FLAG_NHANDLER << 0x3) ; Version = 1
-    ; Version is lowest 3 bits, Handler flaga are highest 5 bits
+    ; Version is low 3 bits. Handler flags are high 5 bits.
     .size:  db      main.body-main.prolog ; size of prolog that is
     .count: db      0x1 ; Only one unwind code
     .frame: db      0x0 + (0x0 << 0x4) ; Zero if no frame pointer taken
-    ; Frame register is low 4 bits, Frame register offset is RSP + 16 * offset
-    ; at time of establishing
+    ; Frame register is low 4 bits, Frame register offset is high 4 bits,
+    ; rsp + 16 * offset at time of establishing
     .codes: db      main.body-main.prolog ; offset of next instruction
             db      UWOP_ALLOC_SMALL + (0x4 << 0x4) ; UWOP_INFO: 4*8+8 bytes
-    ; Low 4 bytes UWOP, High 4 bytes op info.
+    ; Low 4 bytes UWOP, high 4 bytes op info.
     ; Some ops use one or two 16 bit slots more for addressing here
             db      0x0,0x0 ; Unused record to bring the number to be even
     .handl: ; 32 bit image relative address to entry of exception handler
