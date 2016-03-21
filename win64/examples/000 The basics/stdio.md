@@ -66,7 +66,7 @@ section .rdata use64
     UWOP_PUSH_MACHFRAME:    equ     0xa
 ```
 
-This time we need to define a few other messages. We need to ask the user of the program for input, so we need to write a request to standard output. Then we need to read from standard input what has been entered, and we need to show that we've read it right, so we write it out to standard output again. Finally we need to write to the standard error to show that works too. All this writing needs strings to write, so we define them here in the read only data segment, `.rdata`. We also need to, in addition to our `STD_OUTPUT_HANDLE` from Hellow World, also have constants for the other two ports we'll be using, `STD_INPUT_HANDLE` and `STD_ERROR_HANDLE`. Another new constant we need is a constant for the maximum length to read from standard input when we request input from the user.
+This time we need to define a few other messages. We need to ask the user of the program for input, so we need to write a request to standard output. Then we need to read from standard input what has been entered, and we need to show that we've read it right, so we write it out to standard output again. Finally we need to write to the standard error to show that works too. All this writing needs strings to write, so we define them here in the read only data segment, `.rdata`. We also need to, in addition to our `STD_OUTPUT_HANDLE` from Hellow World, also have constants for the other two ports we'll be using, `STD_INPUT_HANDLE` and `STD_ERROR_HANDLE`. Another new constant we need is a constant for the maximum length to read from standard input when we request input from the user, `bNamelim`.
 
 ```Assembly
 ;Uninitialised data
