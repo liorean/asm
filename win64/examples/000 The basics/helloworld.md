@@ -104,7 +104,7 @@ Following us getting the handle, we can try to write to it. This can be done usi
 
 Wrapping up our procedure body, we place 0 as argument to `Exitprocess` using `mov ecx, zero` which zero extends `ecx` into `rcx` while being a shorter bit of machine code than `mov rcx, rcx` (though not as short as `xor ecx, ecx` would have been),  we set our return value register `rax` to zero using `xor eax, eax`, and we enter the epilog code.
 
-The epilog has to reset the stack frame and if we had used any nonvolatile registers, undo whatever nonvolatile register overwriting our procedure has done, in reverse order of it happening, which in our case becomes a simple stack frame restoration ´add rsp, 0x8*0x4+0x8´ and then return, ´ret´.
+The epilog has to reset the stack frame and if we had used any nonvolatile registers, undo whatever nonvolatile register overwriting our procedure has done, in reverse order of it happening, which in our case becomes a simple stack frame restoration `add rsp, 0x8*0x4+0x8` and then return, `ret`.
 
 ```Assembly
 ; Win64 Windows API x64 Structured Exception Handling (SEH) - procedure data
@@ -119,7 +119,7 @@ section .xdata  rdata align=8 use64
     xmain:
     .versionandflags:
             db      UNW_VERSION + (UNW_FLAG_NHANDLER << 0x3) ; Version = 1
-    ; Version is lowest 3 bits, Handler flaga are highest 5 bits
+    ; Version is low 3 bits, Handler flags are high 5 bits
     .size:  db      main.body-main.prolog ; size of prolog that is
     .count: db      0x1 ; Only one unwind code
     .frame: db      0x0 + (0x0 << 0x4) ; Zero if no frame pointer taken
@@ -127,7 +127,7 @@ section .xdata  rdata align=8 use64
     ; at time of establishing
     .codes: db      main.body-main.prolog ; offset of next instruction
             db      UWOP_ALLOC_SMALL + (0x4 << 0x4) ; UWOP_INFO: 4*8+8 bytes
-    ; Low 4 bytes UWOP, High 4 bytes op info.
+    ; Low 4 bytes UWOP, high 4 bytes op info.
     ; Some ops use one or two 16 bit slots more for addressing here
             db      0x0,0x0 ; Unused record to bring the number to be even
     .handl: ; 32 bit image relative address to entry of exception handler
