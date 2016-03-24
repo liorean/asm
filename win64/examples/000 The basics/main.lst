@@ -1,0 +1,28 @@
+     1                                  ;"%ASMROOT%\win64\examples\000 The Basics\main.asm"
+     2                                  ;
+     3                                  ;PE32+ entry is not C main entry!
+     4                                  ;
+     5                                  ;nasm -f win64 -l main.lst main.asm
+     6                                  ;golink /console /ni /entry main main.obj kernel32.dll
+     7                                  
+     8                                  ;Image setup
+     9                                  bits 64
+    10                                  default rel
+    11                                  global main
+    12                                  
+    13                                  ;Linkage
+    14                                  extern ExitProcess
+    15                                  
+    16                                  ;Program code
+    17                                  section .text
+    18                                  main: ; int main(int argc, char *argv[], char *envp[]);
+    19                                  .prolog:
+    20 00000000 488B12                  .body:  mov rdx, [rdx]          ;   Dereference *argv[]
+    21 00000003 488B12                          mov rdx, [rdx]          ;   Dereference the dereference of *argv[] 
+    22 00000006 4D8B00                          mov r8, [r8]            ;   Dereference *envp[]
+    23 00000009 4D8B00                          mov r8, [r8]            ;   Dereference the dereference of *envp[] 
+    24 0000000C 31C9                    .exit:  xor ecx, ecx
+    25 0000000E E8(00000000)                    call ExitProcess
+    26 00000013 31C0                            xor eax, eax
+    27 00000015 C3                      .epilog:ret
+    28                                  .end:
